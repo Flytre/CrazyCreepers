@@ -1,0 +1,77 @@
+// TODO remove buildscript block
+buildscript {
+
+    repositories {
+    
+        mavenCentral()
+    }
+}
+
+apply from: 'gradle/property_loader.gradle'
+apply from: 'gradle/git_changelog.gradle'
+
+version = mod_version
+
+subprojects {
+
+    buildscript {
+        repositories {
+            mavenCentral()
+        }
+        dependencies {
+            classpath 'com.guardsquare:proguard-gradle:7.2.0-beta5'
+        }
+    }
+
+
+    apply plugin: 'maven-publish'
+    
+    apply from: '../gradle/property_loader.gradle'
+    apply from: '../gradle/java.gradle'
+    apply from: '../gradle/git_changelog.gradle'
+    apply from: '../gradle/minify_jsons.gradle'
+    apply from: '../gradle/signing.gradle'
+    
+    // Disables Gradle's custom module metadata from being published to maven. The 
+    // metadata includes mapped dependencies which are not reasonably consumable by
+    // other mod developers.
+    tasks.withType(GenerateModuleMetadata) {
+
+        enabled = false
+    }
+
+    repositories {
+
+        mavenCentral()
+
+        maven {
+            name = 'Sponge / Mixin'
+            url = 'https://repo.spongepowered.org/repository/maven-public/'
+        }
+
+        maven {
+            name = 'Jitpack'
+            url = 'https://www.jitpack.io'
+        }
+    }
+
+    dependencies {
+        implementation group: 'org.jetbrains', name: 'annotations', version: '23.0.0'
+    }
+}
+
+allprojects {
+    configurations {
+        dev
+    }
+}
+
+//Compile-time dependencies that are not exported
+def moduleDependencies(project, List<String> depNames) {
+    def deps = depNames.iterator().collect { project.dependencies.project(path: ":$it") }
+    project.dependencies {
+        deps.each {
+            compileOnly it
+        }
+    }
+}
